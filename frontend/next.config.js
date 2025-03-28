@@ -1,6 +1,5 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
@@ -11,4 +10,4 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@uiw/react-md-editor"]
 };
 
-export default nextConfig;
+module.exports = nextConfig; 
