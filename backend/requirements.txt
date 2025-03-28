@@ -1,0 +1,6 @@
+flask
+firebase-admin
+openai
+PyPDF2
+python-dotenv
+cloudinary
