@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from flask_cors import CORS
 
 load_dotenv()
-cred = credentials.Certificate("backend/skillmatch.json")
+cred = credentials.Certificate('skillmatch.json')
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 cloudinary.config(
@@ -74,10 +74,10 @@ def upload_pdf_to_cloudinary(pdf_path):
         print(f"Error uploading PDF to Cloudinary: {e}")
         return None
 
-def store_resume_in_firebase(parsed_resume, pdf_url):
+def store_resume_in_firebase(parsed_resume, pdf_url,email):
     try:
         parsed_resume["resume_url"] = pdf_url
-        doc_ref = db.collection("resumes").add(parsed_resume)
+        doc_ref = db.collection("resumes").document(email)
         return doc_ref[1].id
     except Exception as e:
         print(f"Error storing parsed resume in Firebase: {e}")
@@ -128,7 +128,7 @@ def upload():
 
     # Store in Firestore
     try:
-        doc_ref = db.collection("resumes").document(user_id)
+        doc_ref = db.collection("resumes").document(user_email)
         doc_ref.set(parsed_resume)
         doc_id = doc_ref.id
     except Exception as e:
