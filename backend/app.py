@@ -142,6 +142,65 @@ def upload_resume():
         if not pdf_url:
             return jsonify({"error": "Failed to upload PDF to Cloudinary"}), 500
 
+        # Validate email
+        email = parsed_resume.get('personal_info', {}).get('email')
+        if not email:
+            return jsonify({"error": "No email found in resume"}), 400
+        
+        # Additional email validation (optional)
+        import re
+        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+            return jsonify({"error": "Invalid email format"}), 400
+
+        parsed_resume.update({
+            "resume_url": pdf_url,
+            "uploaded_at": firestore.SERVER_TIMESTAMP
+        })
+
+        # Store in Firestore using email as document ID
+        doc_ref = db.collection("resumes").document(email)
+        doc_ref.set(parsed_resume)
+
+        return jsonify({
+            "message": "Resume uploaded successfully",
+            "document_id": email,
+            "pdf_url": pdf_url
+        })
+    
+    except Exception as e:
+        return jsonify({"error": f"Upload failed: {str(e)}"}), 500
+    
+    finally:
+        # Clean up temporary file
+        if os.path.exists(pdf_path):
+            os.remove(pdf_path)
+
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+    
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"error": "No file selected"}), 400
+
+    temp_dir = "temp"
+    os.makedirs(temp_dir, exist_ok=True)
+    pdf_path = os.path.join(temp_dir, file.filename)
+    file.save(pdf_path)
+
+    try:
+        raw_text = extract_text_from_pdf(pdf_path)
+        if not raw_text:
+            return jsonify({"error": "Failed to extract text from PDF"}), 500
+
+        cleaned_text = clean_text(raw_text)
+        parsed_resume = parse_resume_with_openai(cleaned_text)
+        if not parsed_resume:
+            return jsonify({"error": "Failed to parse resume"}), 500
+
+        pdf_url = upload_pdf_to_cloudinary(pdf_path)
+        if not pdf_url:
+            return jsonify({"error": "Failed to upload PDF to Cloudinary"}), 500
+
         # Generate a unique document ID based on email
         email = parsed_resume.get('personal_info', {}).get('email')
         if not email:
@@ -172,13 +231,13 @@ def upload_resume():
 @app.route("/company", methods=["POST"])
 def company_requirements():
     data = request.json
-    company_idea = data.get("company_idea")
+    company_name = data.get("company_name")
     job_description = data.get("job_description")
     hiring_type = data.get("hiring_type") 
     work_mode = data.get("work_mode")  
     job_role = data.get("job_role")
 
-    if not all([company_idea, job_description, hiring_type, work_mode, job_role]):
+    if not all([company_name, job_description, hiring_type, work_mode, job_role]):
         return jsonify({"error": "Missing required fields"}), 400
 
     try:
@@ -211,7 +270,7 @@ def company_requirements():
         
         # Store company requirements and matched resumes
         company_doc = {
-            "company_idea": company_idea,
+            "company_name": company_name,
             "job_description": job_description,
             "hiring_type": hiring_type,
             "work_mode": work_mode,
@@ -221,7 +280,7 @@ def company_requirements():
         }
         
         # Store in Firestore
-        db.collection("companies").document(company_idea).set(company_doc)
+        db.collection("companies").document(company_name).set(company_doc)
         
         return jsonify({
             "message": "Company requirements stored successfully", 
@@ -231,70 +290,6 @@ def company_requirements():
     
     except Exception as e:
         return jsonify({"error": f"Failed to process company requirements: {str(e)}"}), 500
-
-@app.route("/company", methods=["POST"])
-def company_requirements():
-    data = request.json
-    company_idea = data.get("company_idea")
-    job_description = data.get("job_description")
-    hiring_type = data.get("hiring_type") 
-    work_mode = data.get("work_mode")  
-    job_role = data.get("job_role")
-
-    if not all([company_idea, job_description, hiring_type, work_mode, job_role]):
-        return jsonify({"error": "Missing required fields"}), 400
-
-    try:
-        # Fetch all resumes
-        resumes = db.collection("resumes").stream()
-        
-        matching_resumes = []
-        
-        # Process each resume
-        for resume_doc in resumes:
-            resume_data = resume_doc.to_dict()
-            
-            # Calculate match score using OpenAI
-            match_result = calculate_resume_match_score(resume_data, job_description)
-            
-            # Only include resumes with match score above 60
-            if match_result['match_score'] >= 60:
-                resume_match_entry = {
-                    "document_id": resume_doc.id,
-                    "match_score": match_result['match_score'],
-                    "matching_skills": match_result['matching_skills'],
-                    "match_explanation": match_result['match_explanation'],
-                    "personal_info": resume_data.get('personal_info', {}),
-                    "resume_url": resume_data.get('resume_url')
-                }
-                matching_resumes.append(resume_match_entry)
-        
-        # Sort matching resumes by match score in descending order
-        matching_resumes.sort(key=lambda x: x['match_score'], reverse=True)
-        
-        # Store company requirements and matched resumes
-        company_doc = {
-            "company_idea": company_idea,
-            "job_description": job_description,
-            "hiring_type": hiring_type,
-            "work_mode": work_mode,
-            "job_role": job_role,
-            "matching_resumes": matching_resumes,
-            "created_at": firestore.SERVER_TIMESTAMP
-        }
-        
-        # Store in Firestore
-        db.collection("companies").document(company_idea).set(company_doc)
-        
-        return jsonify({
-            "message": "Company requirements stored successfully", 
-            "total_matches": len(matching_resumes),
-            "top_matches": matching_resumes[:5]  # Return top 5 matches
-        })
-    
-    except Exception as e:
-        return jsonify({"error": f"Failed to process company requirements: {str(e)}"}), 500
-
 
 
 @app.route("/search_resumes", methods=["GET"])
