@@ -22,7 +22,7 @@ export default function Register() {
       const user = userCredential.user;
 
       // Store additional user data in Firestore
-      await setDoc(doc(db, 'users', user.uid), {
+      await setDoc(doc(db, 'users',user.email!), {
         name,
         email,
         userType,

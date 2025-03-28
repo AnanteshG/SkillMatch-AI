@@ -8,7 +8,15 @@ const nextConfig: NextConfig = {
     };
     return config;
   },
-  transpilePackages: ["@uiw/react-md-editor"]
+  transpilePackages: ["@uiw/react-md-editor"],
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'http://localhost:5000/:path*',
+      },
+    ];
+  }
 };
 
 export default nextConfig;

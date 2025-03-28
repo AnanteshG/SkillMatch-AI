@@ -25,7 +25,7 @@ export default function ProtectedRoute({ children, userType }: ProtectedRoutePro
           return;
         }
 
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const userDoc = await getDoc(doc(db, 'users', user.email!));
         const userData = userDoc.data();
 
         if (userData?.userType !== userType) {

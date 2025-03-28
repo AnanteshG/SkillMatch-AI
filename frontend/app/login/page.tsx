@@ -21,7 +21,7 @@ export default function Login() {
       const user = userCredential.user;
 
       // Get user type from Firestore
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const userDoc = await getDoc(doc(db, 'users', email));
       const userData = userDoc.data();
 
       // Verify if user type matches selected type

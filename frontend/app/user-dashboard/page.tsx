@@ -18,7 +18,7 @@ export default function UserDashboard() {
     const fetchUserData = async () => {
       const user = auth.currentUser;
       if (user) {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const userDoc = await getDoc(doc(db, 'users', user.email!));
         setUserData(userDoc.data());
       }
     };
@@ -95,7 +95,7 @@ export default function UserDashboard() {
       }
 
       // Update user document in Firebase with the resume URL
-      await updateDoc(doc(db, 'users', user.uid), {
+      await updateDoc(doc(db, 'users', user.email!), {
         resumeUrl: data.pdf_url,
         resumeId: data.document_id,
         lastUpdated: new Date().toISOString()
