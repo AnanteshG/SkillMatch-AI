@@ -152,7 +152,7 @@ export default function CompanyDashboard() {
       const response = await fetch(
         `http://localhost:5000/search_resumes?query=${encodeURIComponent(searchQuery)}`
       );
-
+console.log(response);
       if (!response.ok) {
         throw new Error(`Search failed: ${response.statusText}`);
       }

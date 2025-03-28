@@ -299,15 +299,37 @@ def search_resumes():
         return jsonify({"error": "Search query is required"}), 400
 
     try:
-        # Perform a flexible search across resumes
         matching_resumes = []
         resumes = db.collection("resumes").stream()
 
         for resume_doc in resumes:
             resume_data = resume_doc.to_dict()
             
-            # Check if query matches skills, experience, or other fields
-            search_text = json.dumps(resume_data).lower()
+            # Create a searchable version of the resume data by excluding timestamp and converting to lower case
+            searchable_data = {
+                k: str(v).lower() 
+                for k, v in resume_data.items() 
+                if k != 'uploaded_at' and v is not None
+            }
+            
+            # Convert nested dictionaries and lists
+            if 'personal_info' in searchable_data:
+                searchable_data['personal_info'] = {
+                    k: str(v).lower() 
+                    for k, v in resume_data['personal_info'].items() 
+                    if v is not None
+                }
+            
+            if 'skills' in searchable_data:
+                searchable_data['skills'] = [
+                    str(skill).lower() 
+                    for skill in resume_data['skills'] 
+                    if skill is not None
+                ]
+
+            # Convert to string for searching
+            search_text = json.dumps(searchable_data)
+            
             if query.lower() in search_text:
                 matching_resumes.append({
                     "document_id": resume_doc.id,
@@ -322,6 +344,7 @@ def search_resumes():
         })
     
     except Exception as e:
+        print(f"Search error: {str(e)}")  # Debug print
         return jsonify({"error": f"Search failed: {str(e)}"}), 500
 
 @app.route("/get_resume/<email>", methods=["GET"])
