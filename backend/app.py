@@ -3,7 +3,6 @@ import os, re, json, openai, PyPDF2, firebase_admin, cloudinary, cloudinary.uplo
 from firebase_admin import credentials, firestore
 from dotenv import load_dotenv
 from flask_cors import CORS
-from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -143,24 +142,24 @@ def upload_resume():
         if not pdf_url:
             return jsonify({"error": "Failed to upload PDF to Cloudinary"}), 500
 
+        # Generate a unique document ID based on email
         email = parsed_resume.get('personal_info', {}).get('email')
         if not email:
             return jsonify({"error": "No email found in resume"}), 400
 
-        uploaded_at = datetime.utcnow().isoformat()  # Convert timestamp to ISO format
-        
         parsed_resume.update({
             "resume_url": pdf_url,
-            "uploaded_at": uploaded_at
+            "uploaded_at": firestore.SERVER_TIMESTAMP
         })
 
-        db.collection("resumes").document(email).set(parsed_resume)
+        # Store in Firestore
+        doc_ref = db.collection("resumes").document(email)
+        doc_ref.set(parsed_resume)
 
         return jsonify({
             "message": "Resume uploaded successfully",
             "document_id": email,
-            "pdf_url": pdf_url,
-            "uploaded_at": uploaded_at
+            "pdf_url": pdf_url
         })
     
     except Exception as e:
@@ -169,7 +168,7 @@ def upload_resume():
     finally:
         if os.path.exists(pdf_path):
             os.remove(pdf_path)
-            
+
 @app.route("/company", methods=["POST"])
 def company_requirements():
     data = request.json
@@ -233,33 +232,93 @@ def company_requirements():
     except Exception as e:
         return jsonify({"error": f"Failed to process company requirements: {str(e)}"}), 500
 
-           
+@app.route("/company", methods=["POST"])
+def company_requirements():
+    data = request.json
+    company_idea = data.get("company_idea")
+    job_description = data.get("job_description")
+    hiring_type = data.get("hiring_type") 
+    work_mode = data.get("work_mode")  
+    job_role = data.get("job_role")
 
-@app.route("/search-resumes", methods=["GET"])
+    if not all([company_idea, job_description, hiring_type, work_mode, job_role]):
+        return jsonify({"error": "Missing required fields"}), 400
+
+    try:
+        # Fetch all resumes
+        resumes = db.collection("resumes").stream()
+        
+        matching_resumes = []
+        
+        # Process each resume
+        for resume_doc in resumes:
+            resume_data = resume_doc.to_dict()
+            
+            # Calculate match score using OpenAI
+            match_result = calculate_resume_match_score(resume_data, job_description)
+            
+            # Only include resumes with match score above 60
+            if match_result['match_score'] >= 60:
+                resume_match_entry = {
+                    "document_id": resume_doc.id,
+                    "match_score": match_result['match_score'],
+                    "matching_skills": match_result['matching_skills'],
+                    "match_explanation": match_result['match_explanation'],
+                    "personal_info": resume_data.get('personal_info', {}),
+                    "resume_url": resume_data.get('resume_url')
+                }
+                matching_resumes.append(resume_match_entry)
+        
+        # Sort matching resumes by match score in descending order
+        matching_resumes.sort(key=lambda x: x['match_score'], reverse=True)
+        
+        # Store company requirements and matched resumes
+        company_doc = {
+            "company_idea": company_idea,
+            "job_description": job_description,
+            "hiring_type": hiring_type,
+            "work_mode": work_mode,
+            "job_role": job_role,
+            "matching_resumes": matching_resumes,
+            "created_at": firestore.SERVER_TIMESTAMP
+        }
+        
+        # Store in Firestore
+        db.collection("companies").document(company_idea).set(company_doc)
+        
+        return jsonify({
+            "message": "Company requirements stored successfully", 
+            "total_matches": len(matching_resumes),
+            "top_matches": matching_resumes[:5]  # Return top 5 matches
+        })
+    
+    except Exception as e:
+        return jsonify({"error": f"Failed to process company requirements: {str(e)}"}), 500
+
+
+
+@app.route("/search_resumes", methods=["GET"])
 def search_resumes():
     query = request.args.get("query")
     if not query:
         return jsonify({"error": "Search query is required"}), 400
 
     try:
+        # Perform a flexible search across resumes
         matching_resumes = []
         resumes = db.collection("resumes").stream()
 
         for resume_doc in resumes:
             resume_data = resume_doc.to_dict()
-
-            # Convert Firestore timestamp to string
-            if "uploaded_at" in resume_data:
-                resume_data["uploaded_at"] = str(resume_data["uploaded_at"])
-
+            
+            # Check if query matches skills, experience, or other fields
             search_text = json.dumps(resume_data).lower()
             if query.lower() in search_text:
                 matching_resumes.append({
                     "document_id": resume_doc.id,
                     "personal_info": resume_data.get('personal_info', {}),
                     "skills": resume_data.get('skills', []),
-                    "resume_url": resume_data.get('resume_url'),
-                    "uploaded_at": resume_data.get("uploaded_at")
+                    "resume_url": resume_data.get('resume_url')
                 })
 
         return jsonify({
@@ -269,6 +328,20 @@ def search_resumes():
     
     except Exception as e:
         return jsonify({"error": f"Search failed: {str(e)}"}), 500
+
+@app.route("/get_resume/<email>", methods=["GET"])
+def get_resume(email):
+    try:
+        # Retrieve specific resume by email
+        resume_doc = db.collection("resumes").document(email).get()
+        
+        if not resume_doc.exists:
+            return jsonify({"error": "Resume not found"}), 404
+        
+        return jsonify(resume_doc.to_dict())
+    
+    except Exception as e:
+        return jsonify({"error": f"Failed to retrieve resume: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
