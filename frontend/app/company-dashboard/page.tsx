@@ -43,6 +43,8 @@ interface MatchingResume {
   resume_url: string;
 }
 
+// latest code
+
 interface JobPosting {
   company_name: string;
   created_at: any;
@@ -88,8 +90,8 @@ export default function CompanyDashboard() {
     try {
       setIsPosting(true);
       setError('');
-      console.log(auth.currentUser.toJSON());
-      // First fetch company name from Firebase
+
+      // Get company name from Firebase
       const userDoc = await getDoc(doc(db, 'users', auth.currentUser.email!));
       const userData = userDoc.data();
       
@@ -98,14 +100,13 @@ export default function CompanyDashboard() {
       }
 
       const jobData = {
-        company_name: userData.name, // Use company name from Firestore
+        company_name: userData.name,
+        company_email: userData.email,
         job_description: description,
         hiring_type: jobType,
         work_mode: workMode,
         job_role: jobTitle
       };
-      
-      console.log('Sending data:', jobData);
 
       const response = await fetch('http://localhost:5000/company', {
         method: 'POST',
@@ -116,15 +117,14 @@ export default function CompanyDashboard() {
         body: JSON.stringify(jobData),
       });
 
-      console.log('Response status:', response.status);
-
-      const data = await response.json();
-      console.log('Response data:', data);
-
       if (!response.ok) {
-        throw new Error(data.error || `Server error: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Server error: ${response.status}`);
       }
 
+      const data = await response.json();
+      
+      // Update UI and show success message
       setShowForm(false);
       alert(`Job posted successfully! Found ${data.total_matches} potential matches.`);
       
@@ -134,9 +134,13 @@ export default function CompanyDashboard() {
       setWorkMode('onsite');
       setDescription(defaultTemplate);
 
+      // Refresh job listings
+      window.location.reload();
+
     } catch (error: any) {
       console.error('Error posting job:', error);
       setError(error.message || 'Failed to post job');
+      alert(error.message || 'Failed to post job');
     } finally {
       setIsPosting(false);
     }
@@ -251,6 +255,16 @@ console.log(response);
       return (b.matching_resumes?.length || 0) - (a.matching_resumes?.length || 0);
     });
 
+  // Add this function to handle modal opening
+  const handleOpenPostJob = () => {
+    setShowForm(true);
+    // Reset form fields
+    setJobTitle('');
+    setJobType('full-time');
+    setWorkMode('onsite');
+    setDescription(defaultTemplate);
+  };
+
   return (
     <ProtectedRoute userType="company">
       <div className="min-h-screen bg-gradient-to-br from-white to-[#FFF5F5]">
@@ -271,7 +285,7 @@ console.log(response);
                   <span>Search Candidates</span>
                 </button>
                 <button
-                  onClick={() => setShowForm(true)}
+                  onClick={handleOpenPostJob}
                   className="flex items-center gap-2 px-4 py-2 bg-[#F37172] text-white rounded-lg hover:bg-[#ff5b5b] transition-all"
                 >
                   <Plus size={20} />
@@ -317,7 +331,7 @@ console.log(response);
                 <select
                   value={filterWorkMode}
                   onChange={(e) => setFilterWorkMode(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F37172]"
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F37172] text-gray-800"
                 >
                   <option value="all">All Work Modes</option>
                   <option value="remote">Remote</option>
@@ -327,7 +341,7 @@ console.log(response);
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as 'date' | 'matches')}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F37172]"
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F37172] text-gray-800"
                 >
                   <option value="date">Sort by Date</option>
                   <option value="matches">Sort by Matches</option>
@@ -336,13 +350,13 @@ console.log(response);
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded ${viewMode === 'grid' ? 'bg-gray-100' : ''}`}
+                  className={`p-2 rounded text-gray-800 hover:bg-[#F37172]/10 ${viewMode === 'grid' ? 'bg-[#F37172]/10' : ''}`}
                 >
                   <Grid className="w-5 h-5" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded ${viewMode === 'list' ? 'bg-gray-100' : ''}`}
+                  className={`p-2 rounded text-gray-800 hover:bg-[#F37172]/10 ${viewMode === 'list' ? 'bg-[#F37172]/10' : ''}`}
                 >
                   <List className="w-5 h-5" />
                 </button>
@@ -352,14 +366,18 @@ console.log(response);
 
           {/* Search Resumes Section */}
           {showSearch && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-              <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="p-6 border-b border-gray-200">
+            <div className="fixed inset-0 bg-gradient-to-br from-[#00000080] to-[#00000095] backdrop-blur-sm flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-2xl shadow-[0_0_50px_0_rgba(243,113,114,0.1)] w-full max-w-4xl max-h-[90vh] overflow-hidden border border-[#F37172]/10">
+                {/* Modal Header */}
+                <div className="p-6 border-b border-[#F37172]/10 bg-gradient-to-r from-white to-[#FFF5F5]">
                   <div className="flex justify-between items-center">
-                    <h2 className="text-2xl font-bold text-gray-800">Search Candidate Pool</h2>
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-800 mb-1">Search Candidate Pool</h2>
+                      <p className="text-sm text-gray-500">Find the perfect match for your team</p>
+                    </div>
                     <button
                       onClick={() => setShowSearch(false)}
-                      className="text-gray-500 hover:text-gray-700"
+                      className="text-gray-400 hover:text-gray-600 hover:bg-[#F37172]/5 p-2 rounded-full transition-all"
                     >
                       <X size={24} />
                     </button>
@@ -367,22 +385,24 @@ console.log(response);
                 </div>
 
                 <div className="p-6">
-                  <div className="flex gap-4 mb-6">
-                    <div className="flex-1 relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                  {/* Search Input with Enhanced Design */}
+                  <div className="flex gap-4 mb-8">
+                    <div className="flex-1 relative group">
+                      {/* <div className="absolute inset-0 bg-[#F37172]/5 rounded-lg -m-1 transition-all group-focus-within:bg-[#F37172]/10"></div> */}
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#F37172] transition-colors" size={20} />
                       <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                         placeholder="Search by skills, experience, or qualifications..."
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F37172]"
+                        className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F37172]/20 focus:border-[#F37172] transition-all"
                       />
                     </div>
                     <button
                       onClick={handleSearch}
                       disabled={isSearching}
-                      className="px-6 py-2 bg-[#F37172] text-white rounded-lg hover:bg-[#ff5b5b] transition-colors disabled:opacity-50 flex items-center gap-2"
+                      className="px-8 py-3 bg-gradient-to-r from-[#F37172] to-[#ff5b5b] text-white rounded-lg hover:shadow-lg hover:shadow-[#F37172]/20 disabled:opacity-50 disabled:hover:shadow-none transition-all flex items-center gap-2 min-w-[120px] justify-center"
                     >
                       {isSearching ? (
                         <>
@@ -398,55 +418,66 @@ console.log(response);
                     </button>
                   </div>
 
-                  {/* Search Results */}
-                  {searchResults.length > 0 && (
-                    <div className="space-y-4">
-                      {searchResults.map((result, idx) => (
-                        <div key={idx} className="bg-gray-50 rounded-lg p-4 hover:shadow-md transition-shadow">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h5 className="font-medium text-gray-800">
-                                {result.personal_info?.name || 'Anonymous Candidate'}
-                              </h5>
-                              <p className="text-sm text-gray-600">{result.personal_info?.email}</p>
-                            </div>
-                            <a
-                              href={result.resume_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[#F37172] hover:text-[#ff5b5b] flex items-center gap-1 text-sm"
-                            >
-                              <FileText size={16} />
-                              <span>View Resume</span>
-                            </a>
-                          </div>
-                          {result.skills && (
-                            <div className="mt-3">
-                              <div className="flex flex-wrap gap-2">
-                                {result.skills.map((skill: string, skillIdx: number) => (
-                                  <span
-                                    key={skillIdx}
-                                    className="px-2 py-1 bg-[#F37172]/10 text-[#F37172] text-xs rounded-full"
-                                  >
-                                    {skill}
-                                  </span>
-                                ))}
+                  {/* Search Results with Enhanced Cards */}
+                  <div className="space-y-4 overflow-y-auto max-h-[60vh] pr-2 custom-scrollbar">
+                    {searchResults.length > 0 && (
+                      <div className="grid grid-cols-1 gap-4">
+                        {searchResults.map((result, idx) => (
+                          <div 
+                            key={idx} 
+                            className="bg-white rounded-xl p-6 hover:shadow-lg hover:shadow-[#F37172]/10 transition-all border border-[#F37172]/10"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h5 className="text-lg font-semibold text-gray-800 mb-1">
+                                  {result.personal_info?.name || 'Anonymous Candidate'}
+                                </h5>
+                                <p className="text-gray-600 flex items-center gap-2">
+                                  <span className="inline-block w-2 h-2 rounded-full bg-[#F37172]/60"></span>
+                                  {result.personal_info?.email}
+                                </p>
                               </div>
+                              <a
+                                href={result.resume_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-4 py-2 bg-[#F37172]/10 text-[#F37172] rounded-lg hover:bg-[#F37172] hover:text-white transition-all group"
+                              >
+                                <FileText size={16} />
+                                <span>View Resume</span>
+                                <ExternalLink size={14} className="group-hover:translate-x-1 transition-transform" />
+                              </a>
                             </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                            {result.skills && (
+                              <div className="mt-4">
+                                <div className="flex flex-wrap gap-2">
+                                  {result.skills.map((skill: string, skillIdx: number) => (
+                                    <span
+                                      key={skillIdx}
+                                      className="px-3 py-1 bg-white text-[#F37172] text-sm rounded-full border border-[#F37172]/20 shadow-sm"
+                                    >
+                                      {skill}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
-                  {/* No Results State */}
-                  {searchQuery && !isSearching && searchResults.length === 0 && (
-                    <div className="text-center py-8 bg-gray-50 rounded-lg">
-                      <Users className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                      <p className="text-gray-600">No matching candidates found</p>
-                      <p className="text-sm text-gray-500 mt-1">Try different search terms</p>
-                    </div>
-                  )}
+                    {/* Enhanced No Results State */}
+                    {searchQuery && !isSearching && searchResults.length === 0 && (
+                      <div className="text-center py-12 bg-gradient-to-r from-white to-[#FFF5F5] rounded-xl border border-[#F37172]/10">
+                        <div className="bg-[#F37172]/5 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Users className="w-10 h-10 text-[#F37172]" />
+                        </div>
+                        <h3 className="text-xl font-semibold text-gray-800 mb-2">No matches found</h3>
+                        <p className="text-gray-500">Try different search terms or broaden your search</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -464,7 +495,7 @@ console.log(response);
                 <h3 className="text-xl font-semibold text-gray-800 mb-2">No Job Postings Yet</h3>
                 <p className="text-gray-600 mb-6">Start by posting your first job requirement</p>
                 <button
-                  onClick={() => setShowForm(true)}
+                  onClick={handleOpenPostJob}
                   className="flex items-center justify-center gap-2 px-6 py-3 bg-[#F37172] text-white rounded-lg hover:bg-[#ff5b5b] transition-all mx-auto"
                 >
                   <Plus size={20} />
@@ -537,7 +568,7 @@ console.log(response);
                                 <div className="text-right">
                                   <div className="flex items-center gap-1">
                                     <Star className="text-yellow-400" size={20} />
-                                    <span className="font-semibold">{resume.match_score}%</span>
+                                    <span className="font-semibold text-gray-800">{resume.match_score}%</span>
                                   </div>
                                   <a
                                     href={resume.resume_url}
@@ -577,98 +608,135 @@ console.log(response);
           </div>
         )}
 
-        {/* Post Job Form Modal */}
+        {/* Job Posting Form Modal */}
         {showForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl shadow-lg p-8">
+            <div className="bg-white rounded-xl shadow-lg p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">Post New Job</h2>
+                <h2 className="text-2xl font-bold text-gray-800">Post a New Job</h2>
                 <button
                   onClick={() => setShowForm(false)}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-gray-600 hover:text-[#F37172] transition-colors"
                 >
                   <X size={24} />
                 </button>
               </div>
 
               <form onSubmit={handlePost} className="space-y-6">
-                {/* Job Role */}
+                {/* Job Title */}
                 <div>
-                  <label className="block text-gray-700 font-medium mb-2">
-                    Job Role
+                  <label className="block text-gray-800 font-medium mb-2">
+                    Job Title
                   </label>
-                  <input
-                    type="text"
-                    value={jobTitle}
-                    onChange={(e) => setJobTitle(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F37172]"
-                    placeholder="e.g., Backend Engineer"
-                    required
-                  />
+                  <div className="relative">
+                    <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600" size={20} />
+                    <input
+                      type="text"
+                      value={jobTitle}
+                      onChange={(e) => setJobTitle(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F37172] focus:border-transparent text-gray-800"
+                      placeholder="e.g., Senior Software Engineer"
+                      required
+                    />
+                  </div>
                 </div>
 
-                {/* Hiring Type */}
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">
-                    Hiring Type
-                  </label>
-                  <select
-                    value={jobType}
-                    onChange={(e) => setJobType(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F37172]"
-                    required
-                  >
-                    <option value="full-time">Full Time</option>
-                    <option value="part-time">Part Time</option>
-                    <option value="contract">Contract</option>
-                    <option value="intern">Intern</option>
-                  </select>
+                {/* Job Type & Work Mode */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-gray-800 font-medium mb-2">
+                      Job Type
+                    </label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600" size={20} />
+                      <select
+                        value={jobType}
+                        onChange={(e) => setJobType(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F37172] focus:border-transparent appearance-none text-gray-800"
+                      >
+                        <option value="full-time">Full Time</option>
+                        <option value="part-time">Part Time</option>
+                        <option value="contract">Contract</option>
+                        <option value="internship">Internship</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-800 font-medium mb-2">
+                      Work Mode
+                    </label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600" size={20} />
+                      <select
+                        value={workMode}
+                        onChange={(e) => setWorkMode(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F37172] focus:border-transparent appearance-none text-gray-800"
+                      >
+                        <option value="onsite">On-site</option>
+                        <option value="remote">Remote</option>
+                        <option value="hybrid">Hybrid</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Work Mode */}
+                {/* Job Description (Markdown) */}
                 <div>
-                  <label className="block text-gray-700 font-medium mb-2">
-                    Work Mode
+                  <label className="block text-gray-800 font-medium mb-2">
+                    Job Description (Markdown Supported)
                   </label>
-                  <select
-                    value={workMode}
-                    onChange={(e) => setWorkMode(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F37172]"
-                    required
-                  >
-                    <option value="onsite">On-site</option>
-                    <option value="remote">Remote</option>
-                    <option value="hybrid">Hybrid</option>
-                  </select>
-                </div>
-
-                {/* Job Description */}
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">
-                    Job Description
-                  </label>
-                  <div data-color-mode="light">
+                  <div data-color-mode="light" className="mb-6">
                     <MDEditor
                       value={description}
                       onChange={(val) => setDescription(val || '')}
                       preview="edit"
                       height={400}
+                      className="text-gray-800"
                     />
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={isPosting}
-                  className="w-full py-3 bg-[#F37172] text-white rounded-lg hover:bg-[#ff5b5b] transition-colors disabled:opacity-50"
-                >
-                  {isPosting ? 'Posting...' : 'Post Job'}
-                </button>
+                {/* Submit Button - Fixed at bottom */}
+                <div className="bottom-0 bg-white pt-4 pb-2 border-t border-gray-200">
+                  <button
+                    type="submit"
+                    disabled={isPosting}
+                    className="w-full py-3 bg-gradient-to-r from-[#F37172] to-[#ff5b5b] text-white rounded-lg hover:shadow-lg hover:shadow-[#F37172]/20 disabled:opacity-50 disabled:hover:shadow-none transition-all"
+                  >
+                    {isPosting ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                        <span>Posting...</span>
+                      </div>
+                    ) : (
+                      'Post Job'
+                    )}
+                  </button>
+                </div>
               </form>
             </div>
           </div>
         )}
       </div>
-    </ProtectedRoute>
-  );
-} 
+
+      {/* Add this CSS to your global styles or component */}
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #F37172;
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #ff5b5b;
+        }
+      `}</style>
+   </ProtectedRoute>
+);
+}

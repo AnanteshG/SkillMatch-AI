@@ -151,7 +151,7 @@ export default function UserDashboard() {
                 onChange={handleFileSelect}
                 className="hidden"
                 id="resume-upload"
-                disabled={uploading}
+                // disabled={uploading}
               />
               
               {selectedFile ? (
@@ -162,15 +162,15 @@ export default function UserDashboard() {
                     <button 
                       onClick={() => setSelectedFile(null)}
                       className="text-gray-500 hover:text-[#F37172] transition-colors"
-                      disabled={uploading}
+                      // disabled={uploading}
                     >
                       <X size={20} />
                     </button>
                   </div>
                   <button
                     onClick={handleUpload}
-                    disabled={uploading}
-                    className="flex items-center justify-center gap-2 w-full px-6 py-3 rounded-lg bg-[#F37172] text-white hover:bg-[#ff5b5b] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    // disabled={uploading}
+                    className="flex items-center justify-center gap-2 w-full px-6 py-3 rounded-lg bg-[#F37172] text-white hover:bg-[#ff5b5b] transition-colors disabled:cursor-not-allowed"
                   >
                     {uploading ? (
                       <>

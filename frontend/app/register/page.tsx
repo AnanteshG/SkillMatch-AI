@@ -29,6 +29,8 @@ export default function Register() {
         createdAt: new Date().toISOString(),
       });
 
+      // Change colour
+
       // Redirect based on user type
       if (userType === 'company') {
         router.push('/company-dashboard');
@@ -45,7 +47,7 @@ export default function Register() {
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
         <div>
           <h2 className="text-3xl font-bold text-center text-gray-900">Create Account</h2>
-          <p className="mt-2 text-center text-gray-600">Join TalentMatch today</p>
+          <p className="mt-2 text-center text-black">Register to get started</p>
         </div>
 
         {error && (
@@ -56,13 +58,13 @@ export default function Register() {
 
         <form className="space-y-6" onSubmit={handleRegister}>
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">
+            <label className="block text-black text-sm font-bold mb-2">
               Account Type
             </label>
             <select
               value={userType}
               onChange={(e) => setUserType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#F37172]"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#F37172] text-black bg-white"
             >
               <option value="user">Job Seeker</option>
               <option value="company">Company</option>
@@ -70,40 +72,43 @@ export default function Register() {
           </div>
 
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">
+            <label className="block text-black text-sm font-bold mb-2">
               {userType === 'company' ? 'Company Name' : 'Full Name'}
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#F37172]"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#F37172] text-black placeholder-gray-500"
+              placeholder={userType === 'company' ? 'Enter company name' : 'Enter your full name'}
               required
             />
           </div>
 
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">
+            <label className="block text-black text-sm font-bold mb-2">
               Email Address
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#F37172]"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#F37172] text-black placeholder-gray-500"
+              placeholder="Enter your email"
               required
             />
           </div>
 
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">
+            <label className="block text-black text-sm font-bold mb-2">
               Password
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#F37172]"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#F37172] text-black placeholder-gray-500"
+              placeholder="Enter your password"
               required
             />
           </div>
@@ -116,12 +121,14 @@ export default function Register() {
           </button>
         </form>
 
-        <p className="text-center text-gray-600">
-          Already have an account?{' '}
-          <Link href="/login" className="text-[#F37172] hover:underline">
-            Login here
-          </Link>
-        </p>
+        <div className="text-center">
+          <p className="text-black">
+            Already have an account?{' '}
+            <Link href="/login" className="text-[#F37172] hover:underline">
+              Sign in here
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
