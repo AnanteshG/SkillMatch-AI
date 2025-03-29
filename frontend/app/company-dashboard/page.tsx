@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { LogOut, Briefcase, MapPin, Clock, Code, Plus, X, Search, FileText, ExternalLink, Users, Building, Star, Grid, List } from 'lucide-react';
 import MDEditor from '@uiw/react-md-editor';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const defaultTemplate = `## Project Overview
 Brief description of the project and its goals.
@@ -126,7 +128,15 @@ export default function CompanyDashboard() {
       
       // Update UI and show success message
       setShowForm(false);
-      alert(`Job posted successfully! Found ${data.total_matches} potential matches.`);
+      toast.success(`Job posted successfully! Found ${data.total_matches} potential matches.`, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
       
       // Reset form
       setJobTitle('');
@@ -140,7 +150,15 @@ export default function CompanyDashboard() {
     } catch (error: any) {
       console.error('Error posting job:', error);
       setError(error.message || 'Failed to post job');
-      alert(error.message || 'Failed to post job');
+      toast.error(error.message || 'Failed to post job', {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
     } finally {
       setIsPosting(false);
     }
@@ -268,6 +286,17 @@ console.log(response);
   return (
     <ProtectedRoute userType="company">
       <div className="min-h-screen bg-gradient-to-br from-white to-[#FFF5F5]">
+        <ToastContainer
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light" aria-label={undefined}        />
         {/* Dashboard Header */}
         <nav className="bg-white shadow-sm sticky top-0 z-10">
           <div className="max-w-7xl mx-auto px-8 py-4">
@@ -389,14 +418,14 @@ console.log(response);
                   <div className="flex gap-4 mb-8">
                     <div className="flex-1 relative group">
                       {/* <div className="absolute inset-0 bg-[#F37172]/5 rounded-lg -m-1 transition-all group-focus-within:bg-[#F37172]/10"></div> */}
-                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#F37172] transition-colors" size={20} />
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-black group-focus-within:text-[#F37172] transition-colors" size={20} />
                       <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                         placeholder="Search by skills, experience, or qualifications..."
-                        className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F37172]/20 focus:border-[#F37172] transition-all"
+                        className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F37172]/20 focus:border-[#F37172] transition-all text-black"
                       />
                     </div>
                     <button

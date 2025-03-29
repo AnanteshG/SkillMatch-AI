@@ -6,6 +6,8 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { LogOut, Upload, FileText, Loader2, X, ArrowUpCircle } from 'lucide-react';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function UserDashboard() {
   const router = useRouter();
@@ -54,7 +56,15 @@ export default function UserDashboard() {
     if (file && file.type === 'application/pdf') {
       setSelectedFile(file);
     } else {
-      alert('Please upload a PDF file');
+      toast.error('Please upload a PDF file', {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
     }
   };
 
@@ -63,7 +73,15 @@ export default function UserDashboard() {
     if (file && file.type === 'application/pdf') {
       setSelectedFile(file);
     } else {
-      alert('Please upload a PDF file');
+      toast.error('Please upload a PDF file', {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
     }
   };
 
@@ -80,7 +98,7 @@ export default function UserDashboard() {
 
       const formData = new FormData();
       formData.append('file', selectedFile);
-      formData.append('userId', user.uid);  // Send user ID to backend
+      formData.append('userId', user.uid);
       formData.append('userEmail', user.email || '');
 
       const response = await fetch('http://localhost:5000/upload', {
@@ -102,11 +120,27 @@ export default function UserDashboard() {
       });
 
       setSelectedFile(null);
-      alert('Resume uploaded and parsed successfully!');
+      toast.success('Resume uploaded and parsed successfully!', {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
 
     } catch (error) {
       console.error('Upload error:', error);
-      alert(error instanceof Error ? error.message : 'Failed to upload resume');
+      toast.error(error instanceof Error ? error.message : 'Failed to upload resume', {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
     } finally {
       setUploading(false);
     }
@@ -115,6 +149,17 @@ export default function UserDashboard() {
   return (
     <ProtectedRoute userType="user">
       <div className="min-h-screen bg-gradient-to-br from-white to-[#FFF5F5]">
+        <ToastContainer
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light" aria-label={undefined}        />
         <nav className="bg-white shadow-sm">
           <div className="max-w-6xl mx-auto px-8 py-4 flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-800">
