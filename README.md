@@ -98,7 +98,7 @@ npm run dev
 
 ---
 
-## 🔥 Contributors 
+## 🔥 Contributors
 
 - [**Anantesh G**](https://github.com/AnanteshG)
 - [**Chetan R**](https://github.com/chetanr25)
