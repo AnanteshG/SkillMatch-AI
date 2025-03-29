@@ -24,7 +24,6 @@ TalentMatch-AI is a centralized platform that uses an AI-powered agent to match 
 ### Frontend:
 
 - **Next.js** - React framework for server-side rendering.
-- **Firebase** - Authentication and database.
 - **Tailwind CSS** - Styling framework.
 
 ### Backend:

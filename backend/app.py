@@ -4,7 +4,18 @@ import json
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import os
+import re
+import json
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from flask import Flask, request, jsonify
+import openai
+import PyPDF2
+import firebase_admin
+import cloudinary
+import cloudinary.uploader
 import openai
 import PyPDF2
 import firebase_admin
@@ -297,10 +308,17 @@ def company_requirements():
     work_mode = data.get("work_mode")  
     job_role = data.get("job_role")
     company_email = data.get("company_email")
+    company_email = data.get("company_email")
 
     # Validate required fields
     if not all([company_name, job_description, hiring_type, work_mode, job_role, company_email]):
+    # Validate required fields
+    if not all([company_name, job_description, hiring_type, work_mode, job_role, company_email]):
         return jsonify({"error": "Missing required fields"}), 400
+
+    # Validate email format
+    if not re.match(r"[^@]+@[^@]+\.[^@]+", company_email):
+        return jsonify({"error": "Invalid email format"}), 400
 
     # Validate email format
     if not re.match(r"[^@]+@[^@]+\.[^@]+", company_email):
@@ -328,6 +346,7 @@ def company_requirements():
         matching_resumes.sort(key=lambda x: x['match_score'], reverse=True)
         
         # Prepare company document
+        # Prepare company document
         company_doc = {
             "company_name": company_name,
             "job_description": job_description,
@@ -335,12 +354,22 @@ def company_requirements():
             "work_mode": work_mode,
             "job_role": job_role,
             "company_email": company_email,  # Store company email in the document
+            "company_email": company_email,  # Store company email in the document
             "matching_resumes": matching_resumes,
             "created_at": firestore.SERVER_TIMESTAMP
         }
         
         # Store company document
+        # Store company document
         db.collection("companies").document(company_name).set(company_doc)
+        
+        # Send email notification
+        email_sent = send_matching_resumes_email(
+            company_email, 
+            company_name, 
+            job_role, 
+            matching_resumes
+        )
         
         # Send email notification
         email_sent = send_matching_resumes_email(
@@ -353,6 +382,8 @@ def company_requirements():
         return jsonify({
             "message": "Company requirements stored successfully", 
             "total_matches": len(matching_resumes),
+            "top_matches": matching_resumes[:5],
+            "email_sent": email_sent
             "top_matches": matching_resumes[:5],
             "email_sent": email_sent
         })
@@ -372,6 +403,7 @@ def search_resumes():
 
         for resume_doc in resumes:
             resume_data = resume_doc.to_dict()
+            search_text = json.dumps(resume_data).lower()
             search_text = json.dumps(resume_data).lower()
             if query.lower() in search_text:
                 matching_resumes.append({
