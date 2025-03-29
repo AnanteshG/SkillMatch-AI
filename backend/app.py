@@ -4,18 +4,7 @@ import json
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-import os
-import re
-import json
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from flask import Flask, request, jsonify
-import openai
-import PyPDF2
-import firebase_admin
-import cloudinary
-import cloudinary.uploader
 import openai
 import PyPDF2
 import firebase_admin
@@ -57,7 +46,7 @@ def send_matching_resumes_email(company_email, company_name, job_role, matching_
         matching_resumes (list): List of matched resumes
     """
     try:
-        # SMTP serverrr
+        # SMTP Configuration from environment variables
         smtp_host = os.getenv('SMTP_HOST', 'smtp.gmail.com')
         smtp_port = int(os.getenv('SMTP_PORT', 587))
         smtp_username = os.getenv('SMTP_USERNAME')
@@ -91,25 +80,125 @@ def send_matching_resumes_email(company_email, company_name, job_role, matching_
         # Generate HTML email content
         resume_list_html = "".join([
             f"""
-            <div style='margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px;'>
-                <h3>Candidate: {resume.get('personal_info', {}).get('name', 'Unknown')}</h3>
-                <p><strong>Match Score:</strong> {resume['match_score']}%</p>
-                <p><strong>Matching Skills:</strong> {', '.join(resume.get('matching_skills', []))}</p>
-                <p><strong>Match Explanation:</strong> {resume.get('match_explanation', 'No explanation')}</p>
-                <p><a href='{resume.get('resume_url', '#')}'>View Resume</a></p>
+            <div style='margin-bottom: 25px; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); background-color: #ffffff;'>
+                <h3 style='color: #2c3e50; margin-top: 0; border-bottom: 2px solid #3498db; padding-bottom: 10px;'>
+                    {resume.get('personal_info', {}).get('name', 'Unknown')}
+                </h3>
+                
+                <div style='margin: 15px 0;'>
+                    <p style='margin: 5px 0; font-weight: bold; color: #555;'>Match Score:</p>
+                    <div style='background-color: #f0f0f0; border-radius: 10px; height: 20px; width: 100%; margin-top: 5px;'>
+                        <div style='background: linear-gradient(to right, #3498db, #9b59b6); width: {resume["match_score"]}%; height: 100%; border-radius: 10px; text-align: center;'>
+                            <span style='color: white; font-size: 12px; line-height: 20px; text-shadow: 1px 1px 1px rgba(0,0,0,0.2);'>{resume["match_score"]}%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style='margin: 15px 0;'>
+                    <p style='margin: 5px 0; font-weight: bold; color: #555;'>Matching Skills:</p>
+                    <div style='display: flex; flex-wrap: wrap; gap: 5px;'>
+                        {" ".join([f'<span style="background-color: #e8f4fc; color: #3498db; padding: 5px 10px; border-radius: 15px; font-size: 12px;">{skill}</span>' for skill in resume.get('matching_skills', [])])}
+                    </div>
+                </div>
+                
+                <div style='margin: 15px 0;'>
+                    <p style='margin: 5px 0; font-weight: bold; color: #555;'>Match Explanation:</p>
+                    <p style='margin: 5px 0; color: #666; line-height: 1.5;'>{resume.get('match_explanation', 'No explanation')}</p>
+                </div>
+                
+                <div style='text-align: center; margin-top: 20px;'>
+                    <a href='{resume.get('resume_url', '#')}' style='display: inline-block; background: linear-gradient(135deg, #3498db, #9b59b6); color: white; text-decoration: none; padding: 10px 25px; border-radius: 25px; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transition: all 0.3s ease;'>View Resume</a>
+                </div>
             </div>
             """ for resume in matching_resumes[:10]  # Limit to top 10 matches
         ])
         
         html_content = f"""
         <html>
+            <head>
+                <style>
+                    body {{
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        line-height: 1.6;
+                        color: #333;
+                        background-color: #f9f9f9;
+                        margin: 0;
+                        padding: 0;
+                    }}
+                    .container {{
+                        max-width: 650px;
+                        margin: 0 auto;
+                        padding: 20px;
+                        background-color: #ffffff;
+                        border-radius: 10px;
+                        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+                    }}
+                    .header {{
+                        text-align: center;
+                        padding: 20px 0;
+                        border-bottom: 1px solid #eaeaea;
+                    }}
+                    .header h1 {{
+                        color: #2c3e50;
+                        margin: 0;
+                        font-size: 24px;
+                    }}
+                    .header h2 {{
+                        color: #3498db;
+                        margin: 10px 0 0;
+                        font-size: 20px;
+                    }}
+                    .content {{
+                        padding: 20px 0;
+                    }}
+                    .summary {{
+                        background-color: #f8f9fa;
+                        border-left: 4px solid #3498db;
+                        padding: 15px;
+                        margin-bottom: 20px;
+                        border-radius: 0 5px 5px 0;
+                    }}
+                    .footer {{
+                        text-align: center;
+                        padding: 20px 0;
+                        color: #7f8c8d;
+                        font-size: 14px;
+                        border-top: 1px solid #eaeaea;
+                    }}
+                    .dashboard-link {{
+                        display: inline-block;
+                        background-color: #3498db;
+                        color: white;
+                        text-decoration: none;
+                        padding: 10px 20px;
+                        border-radius: 5px;
+                        margin-top: 10px;
+                        font-weight: bold;
+                    }}
+                </style>
+            </head>
             <body>
-                <h1>Resume Matching Results for {company_name}</h1>
-                <h2>Job Role: {job_role}</h2>
-                <p>We've found {len(matching_resumes)} potential candidates that match your job requirements.</p>
-                <h3>Top Matching Candidates:</h3>
-                {resume_list_html}
-                <p>For full details, please log in to your dashboard.</p>
+                <div class="container">
+                    <div class="header">
+                        <h1>Resume Matching Results</h1>
+                        <h2>{company_name} - {job_role}</h2>
+                    </div>
+                    
+                    <div class="content">
+                        <div class="summary">
+                            <p>We've found <strong>{len(matching_resumes)}</strong> potential candidates that match your job requirements.</p>
+                        </div>
+                        
+                        <h3 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">Top Matching Candidates</h3>
+                        {resume_list_html}
+                    </div>
+                    
+                    <div class="footer">
+                        <p>For full details and more candidates, please visit your dashboard</p>
+                        <a href="#" class="dashboard-link">Go to Dashboard</a>
+                        <p style="margin-top: 20px; font-size: 12px;">© 2023 SkillMatch. All rights reserved.</p>
+                    </div>
+                </div>
             </body>
         </html>
         """
@@ -147,7 +236,7 @@ def send_matching_resumes_email(company_email, company_name, job_role, matching_
     except Exception as e:
         print(f"Unexpected error in send_matching_resumes_email: {e}")
         return False
-    
+
 def extract_text_from_pdf(pdf_path):
     try:
         with open(pdf_path, "rb") as f:
@@ -280,10 +369,8 @@ def upload_resume():
         })
 
         # Store in Firestore using email as document ID
-        print(email)
         doc_ref = db.collection("resumes").document(email)
         doc_ref.set(parsed_resume)
-        print(parsed_resume)
 
         return jsonify({
             "message": "Resume uploaded successfully",
@@ -308,17 +395,10 @@ def company_requirements():
     work_mode = data.get("work_mode")  
     job_role = data.get("job_role")
     company_email = data.get("company_email")
-    company_email = data.get("company_email")
 
-    # Validate required fields
-    if not all([company_name, job_description, hiring_type, work_mode, job_role, company_email]):
     # Validate required fields
     if not all([company_name, job_description, hiring_type, work_mode, job_role, company_email]):
         return jsonify({"error": "Missing required fields"}), 400
-
-    # Validate email format
-    if not re.match(r"[^@]+@[^@]+\.[^@]+", company_email):
-        return jsonify({"error": "Invalid email format"}), 400
 
     # Validate email format
     if not re.match(r"[^@]+@[^@]+\.[^@]+", company_email):
@@ -346,7 +426,6 @@ def company_requirements():
         matching_resumes.sort(key=lambda x: x['match_score'], reverse=True)
         
         # Prepare company document
-        # Prepare company document
         company_doc = {
             "company_name": company_name,
             "job_description": job_description,
@@ -354,22 +433,12 @@ def company_requirements():
             "work_mode": work_mode,
             "job_role": job_role,
             "company_email": company_email,  # Store company email in the document
-            "company_email": company_email,  # Store company email in the document
             "matching_resumes": matching_resumes,
             "created_at": firestore.SERVER_TIMESTAMP
         }
         
         # Store company document
-        # Store company document
         db.collection("companies").document(company_name).set(company_doc)
-        
-        # Send email notification
-        email_sent = send_matching_resumes_email(
-            company_email, 
-            company_name, 
-            job_role, 
-            matching_resumes
-        )
         
         # Send email notification
         email_sent = send_matching_resumes_email(
@@ -382,8 +451,6 @@ def company_requirements():
         return jsonify({
             "message": "Company requirements stored successfully", 
             "total_matches": len(matching_resumes),
-            "top_matches": matching_resumes[:5],
-            "email_sent": email_sent
             "top_matches": matching_resumes[:5],
             "email_sent": email_sent
         })
@@ -403,7 +470,6 @@ def search_resumes():
 
         for resume_doc in resumes:
             resume_data = resume_doc.to_dict()
-            search_text = json.dumps(resume_data).lower()
             search_text = json.dumps(resume_data).lower()
             if query.lower() in search_text:
                 matching_resumes.append({
@@ -434,5 +500,5 @@ def get_resume(email):
     except Exception as e:
         return jsonify({"error": f"Failed to retrieve resume: {str(e)}"}), 500
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000,debug=True)
+# if __name__ == "_main_":
+app.run(host="0.0.0.0", port=5000)
