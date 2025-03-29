@@ -66,10 +66,31 @@ npm install
 npm run dev
 ```
 
-#### 4️⃣ Firebase Setup
 
-- Configure Firebase in `frontend/firebase/firebase.ts`.
-- Set up authentication and Firestore database.
+#### 4️⃣ Create a .env file in the backend directory and add the following:
+```sh
+OPENAI_API_KEY=
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=username@gmail.com
+SMTP_PASSWORD=
+SENDER_EMAIL=sender-email@gmail.com
+```
+
+#### 5️⃣ Create a .env file in the frontend directory and add the following:
+```sh
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=
+NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
+```
 
 ---
 
