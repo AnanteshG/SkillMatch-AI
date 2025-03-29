@@ -17,8 +17,6 @@ TalentMatch-AI is a centralized platform that uses an AI-powered agent to match 
 
 ---
 
----
-
 ## 🛠 Tech Stack
 
 ### Frontend:
@@ -96,6 +94,7 @@ npm run dev
 | Method | Endpoint   | Description            |
 | ------ | ---------- | ---------------------- |
 | POST   | `/company` | Post a job description |
+| GET    | `/search_resumes` | Search resumes with a Query|
 
 ---
 
